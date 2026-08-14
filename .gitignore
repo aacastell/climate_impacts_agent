@@ -1,0 +1,32 @@
+# Python
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Environment
+
+.env
+
+# Data & Model artifacts (large, regenerable - not commited)
+
+data/cache/
+data/rag_index/
+*.gguf
+*.safetensors
+ml/**/checkpoints/
+ml/**/*.bin
+
+# OS
+
+.DS_Store
+
+# IDE
+
+.vscode/
+.idea/
