@@ -1,20 +1,29 @@
+import httpx 
+
 from climate_agent.schemas import BBox
 
-GEOCODE_LOOKUP = {
-    "tolima, colombia": {"min_lat": 3.3, "min_lon": -76.0, "max_lat": 5.4, "max_lon": -74.3},
-    "colombia": {"min_lat": -4.2, "min_lon": -79.0, "max_lat": 12.5, "max_lon": -66.9},
-    "mexico": {"min_lat": 14.5, "min_lon": -118.4, "max_lat": 32.7, "max_lon": -86.7},
-    "united states": {"min_lat": 24.5, "min_lon": -124.8, "max_lat": 49.4, "max_lon": -66.9},
-    "china": {"min_lat": 18.2, "min_lon": 73.5, "max_lat": 53.6, "max_lon": 134.8},
-    "brazil": {"min_lat": -33.7, "min_lon": -73.9, "max_lat": 5.3, "max_lon": -34.8},
-}
-
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+USER_AGENT = "climate-impacts-agent-demo/0.1 (portfolio project)"
 
 def geocode(region_text: str) -> BBox | None:
-    """Resolve free-text region name to a bounding box. Stub: fixed lookup table only.
-
-    Args: region_text — place name as typed/extracted (case-insensitive).
-    Returns: BBox if found in the lookup table, else None.
+    """Resolve free-text region name to a bounding box via OpenStreetMap Nominatim
+    
+    Args: region_text - place name as typed/extracted.
+    Returns: BBox if a match is found, else None.
     """
-    bbox = GEOCODE_LOOKUP.get(region_text.strip().lower())
-    return BBox(**bbox) if bbox else None
+    response = httpx.get(
+        NOMINATIM_URL,
+        params={"q": region_text, "format": "json", "limit": 1},
+        headers={"User-Agent": USER_AGENT},
+        timeout=10.0,
+    )
+    response.raise_for_status()
+    results = response.json()
+    if not results:
+        return None
+
+    min_lat, max_lat, min_lon, max_lon = (float(v) for v in results[0]["boundingbox"])
+    return BBox(min_lat=min_lat,
+                min_lon=min_lon,
+                max_lat=max_lat,
+                max_lon=max_lon)
