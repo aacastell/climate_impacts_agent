@@ -16,6 +16,7 @@ dependencies = [
     "netCDF4>=1.7",
     "numpy>=2.0",
     "pydeck>=0.9",
+    "dvc",
 ]
 
 [project.optional-dependencies]

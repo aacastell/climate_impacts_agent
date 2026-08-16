@@ -10,6 +10,7 @@ services:
             - ORCHESTRATION_BACKEND=graph
         volumes:
             - ./src:/app/src
+            - ./data/cache:/app/data/cache
         
     frontend:
         build: .
@@ -22,6 +23,7 @@ services:
             - API_BASE_URL=http://api:8000
         volumes:
             - ./src:/app/src
+            - ./data/cache:/app/data/cache
         depends_on:
             - api
         
