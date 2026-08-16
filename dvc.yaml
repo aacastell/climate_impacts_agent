@@ -1,0 +1,64 @@
+stages:
+  fetch_tas_baseline:
+    cmd: python -m climate_agent.data.download.climate --variable tas --window baseline --cache-dir data/cache
+    deps:
+      - src/climate_agent/data/download/client.py
+      - src/climate_agent/data/download/climate.py
+    outs:
+      - data/cache/gfdl-esm4_r1i1p1f1_w5e5_historical_tas_global_daily_2011_2014.nc
+
+  fetch_tas_future:
+    cmd: python -m climate_agent.data.download.climate --variable tas --window future --cache-dir data/cache
+    deps:
+      - src/climate_agent/data/download/client.py
+      - src/climate_agent/data/download/climate.py
+    outs:
+      - data/cache/gfdl-esm4_r1i1p1f1_w5e5_ssp370_tas_global_daily_2051_2060.nc
+
+  fetch_pr_baseline:
+    cmd: python -m climate_agent.data.download.climate --variable pr --window baseline --cache-dir data/cache
+    deps:
+      - src/climate_agent/data/download/client.py
+      - src/climate_agent/data/download/climate.py
+    outs:
+      - data/cache/gfdl-esm4_r1i1p1f1_w5e5_historical_pr_global_daily_2011_2014.nc
+
+  fetch_pr_future:
+    cmd: python -m climate_agent.data.download.climate --variable pr --window future --cache-dir data/cache
+    deps:
+      - src/climate_agent/data/download/client.py
+      - src/climate_agent/data/download/climate.py
+    outs:
+      - data/cache/gfdl-esm4_r1i1p1f1_w5e5_ssp370_pr_global_daily_2051_2060.nc
+
+  fetch_agriculture_baseline:
+    cmd: python -m climate_agent.data.download.agriculture --window baseline --cache-dir data/cache
+    deps:
+      - src/climate_agent/data/download/client.py
+      - src/climate_agent/data/download/agriculture.py
+    outs:
+      - data/cache/lpjml_gfdl-esm4_w5e5_historical_2015soc_default_yield-mai-noirr_global_annual-gs_1850_2014.nc
+
+  fetch_agriculture_future:
+    cmd: python -m climate_agent.data.download.agriculture --window future --cache-dir data/cache
+    deps:
+      - src/climate_agent/data/download/client.py
+      - src/climate_agent/data/download/agriculture.py
+    outs:
+      - data/cache/lpjml_gfdl-esm4_w5e5_ssp370_2015soc_2015co2_yield-mai-noirr_global_annual-gs_2015_2100.nc
+
+  fetch_biome_baseline:
+    cmd: python -m climate_agent.data.download.biome --window baseline --cache-dir data/cache
+    deps:
+      - src/climate_agent/data/download/client.py
+      - src/climate_agent/data/download/biome.py
+    outs:
+      - data/cache/classic_gfdl-esm4_w5e5_historical_2015soc_default_pft-c4grass_global_annual_1850_2014.nc
+
+  fetch_biome_future:
+    cmd: python -m climate_agent.data.download.biome --window future --cache-dir data/cache
+    deps:
+      - src/climate_agent/data/download/client.py
+      - src/climate_agent/data/download/biome.py
+    outs:
+      - data/cache/classic_gfdl-esm4_w5e5_ssp370_2015soc_default_pft-c4grass_global_annual_2015_2100.nc
