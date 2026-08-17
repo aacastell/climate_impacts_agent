@@ -26,6 +26,23 @@ DEFAULT_GWL_MODE = "gwl"
 DEFAULT_GWL_VALUE = 2.0
 
 
+def _simplify_region(region: str, attempt: int) -> str:
+    """Progressively broader interpretation of a comma-separated region description.
+
+    Real alternate-interpretation retry, not a blind repeat: place descriptions commonly go
+    specific-to-broad left to right ("the Nile Delta, Egypt"), so later attempts drop leading
+    segments, trying broader jurisdictions the geocoder is more likely to recognize. A
+    single-segment region (no comma) has nothing to simplify, so every attempt is identical —
+    honest, not a fabricated alternative.
+
+    Args: region — original region text. attempt — 1-indexed retry number.
+    Returns: region text for this attempt.
+    """
+    segments = [s.strip() for s in region.split(",")]
+    drop = min(attempt - 1, len(segments) - 1)
+    return ", ".join(segments[drop:])
+
+
 def understand_and_call_tools(state: AgentState) -> dict:
     """Resolve region/gwl/sector from the query, via the fine-tuned router (item 14), and call
     the tools needed to answer it.
@@ -46,7 +63,10 @@ def understand_and_call_tools(state: AgentState) -> dict:
     if not extracted:
         assumptions.append("Could not understand the query — using default region, sector, and GWL target.")
 
-    region = extracted.get("region") or DEFAULT_REGION
+    router_region = extracted.get("region") or DEFAULT_REGION
+    region = _simplify_region(router_region, attempts)
+    if region != router_region:
+        assumptions.append(f"Couldn't resolve '{router_region}' directly — trying the broader '{region}'.")
 
     sector = extracted.get("sector")
     if sector not in SECTOR_TOOLS:
