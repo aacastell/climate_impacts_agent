@@ -1,7 +1,11 @@
 import argparse
 from pathlib import Path
 
-from climate_agent.data.download.client import download_file, file_for_year_range, search_dataset
+from climate_agent.data.download.client import (
+    download_file,
+    file_for_year_range,
+    search_dataset,
+)
 
 WINDOWS = {
     "baseline": {"climate_scenario": "historical", "year_range": "2011_2014"},

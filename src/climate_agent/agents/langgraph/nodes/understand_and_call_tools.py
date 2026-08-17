@@ -2,7 +2,11 @@ from climate_agent.agents.langgraph.state import AgentState, ToolCall
 from climate_agent.schemas import BBox
 from climate_agent.tools.agriculture import compute_agriculture
 from climate_agent.tools.biome import compute_biome
-from climate_agent.tools.gwl import window_from_gwl, window_from_heat_extremes, window_from_precip_extremes
+from climate_agent.tools.gwl import (
+    window_from_gwl,
+    window_from_heat_extremes,
+    window_from_precip_extremes,
+)
 from climate_agent.tools.hazard import compute_hazard_drivers
 from climate_agent.tools.region import geocode
 from climate_agent.tools.router import extract_query_fields
@@ -112,8 +116,9 @@ def understand_and_call_tools(state: AgentState) -> dict:
     gwl = f"{gwl_value} [{gwl_mode}] ({window.start_year}-{window.end_year})"
 
     sector_tool = SECTOR_TOOLS[sector]
-    impact_grid, sector_impact = sector_tool(bbox, window)
-    driver_grids, drivers = compute_hazard_drivers(bbox, window)
+    impact_grid, sector_impact, sector_assumptions = sector_tool(bbox, window)
+    driver_grids, drivers, hazard_assumptions = compute_hazard_drivers(bbox, window)
+    assumptions = assumptions + sector_assumptions + hazard_assumptions
 
     return {
         "attempts": attempts,

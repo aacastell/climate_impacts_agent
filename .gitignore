@@ -21,6 +21,7 @@ data/cache/
 **/ml/**/checkpoints/
 **/ml/**/*.bin
 **/ml/emulator/models/
+**/ml/emulator/data/
 **/ml/tool_router/adapter/
 **/ml/tool_router/data/
 **/rag/embeddings.npy

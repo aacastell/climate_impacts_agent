@@ -70,6 +70,28 @@ def sample_at_cells(data: xr.DataArray, cells: list[tuple[float, float]]) -> np.
     return sampled.values
 
 
+def clamp_years_to_range(start_year: int, end_year: int, cache_start: int, cache_end: int) -> tuple[int, int, bool]:
+    """Clamp a requested year range to what's actually cached, preserving the requested width.
+
+    Was unreachable until item 17's real emulator models could predict a window outside what's
+    cached (the item-10 stub always happened to return an in-range window) — now a real, hit
+    code path, not theoretical. Matches the bounded-resolve-then-degrade pattern used everywhere
+    else: never silently substitute without the caller being able to say so.
+
+    Args: start_year, end_year — requested window (possibly out of range). cache_start,
+    cache_end — the real coverage of the cached data.
+    Returns: (used_start, used_end, was_clamped).
+    """
+    width = end_year - start_year
+    if start_year < cache_start:
+        clamped_start = cache_start
+    elif end_year > cache_end:
+        clamped_start = cache_end - width
+    else:
+        return start_year, end_year, False
+    return clamped_start, clamped_start + width, True
+
+
 def stub_value(seed: str, lat: float, lon: float, low: float, high: float) -> float:
     """Deterministic placeholder value for a grid cell. Delete once real tools (items 9-12) land.
 

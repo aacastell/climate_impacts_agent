@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check .
+      - name: Test
+        run: pytest
+
+  dvc-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e .
+      # No real data is fetched here (data/cache/ is gitignored, never in the checkout) — this
+      # validates pipeline structure and dependency resolution, catching config drift like the
+      # item-13 stale-corpus bug (a stage's deps/outs no longer matching reality) at CI time
+      # instead of only when someone runs it locally.
+      - name: Validate DVC pipeline structure
+        run: |
+          dvc dag
+          dvc repro --dry

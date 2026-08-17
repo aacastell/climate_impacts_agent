@@ -3,10 +3,13 @@ from mlflow.entities import SpanType
 
 from climate_agent.agents.langgraph.nodes.narrate import narrate
 from climate_agent.agents.langgraph.nodes.retrieve_context import retrieve_context
-from climate_agent.agents.langgraph.nodes.understand_and_call_tools import understand_and_call_tools
+from climate_agent.agents.langgraph.nodes.understand_and_call_tools import (
+    understand_and_call_tools,
+)
 from climate_agent.agents.langgraph.nodes.verify_narration import verify_narration
 from climate_agent.agents.langgraph.state import AgentState
 from climate_agent.observability.tracing import traced
+
 
 def route_after_understanding(state: AgentState) -> str:
     return "understand_and_call_tools" if state["status"] == "resolving" else "retrieve_context"

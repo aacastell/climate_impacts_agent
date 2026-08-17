@@ -1,0 +1,32 @@
+name: CT
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Monthly — re-validates training still works even with zero code changes, since the real
+    # trigger for "new data available" lives at ISIMIP (external), not in this git repo. A
+    # push-based trigger on data/cache/ can't exist since that directory is gitignored and
+    # never committed; this schedule + the path filter below are the two real signals available.
+    - cron: "0 0 1 * *"
+  push:
+    paths:
+      - "src/climate_agent/ml/emulator/**"
+      - "src/climate_agent/tools/hazard.py"
+      - "src/climate_agent/data/download/**"
+
+jobs:
+  validate-training:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e ".[ml]"
+      # Real data fetch (dvc.yaml's upstream deps) + real training + real LOOCV eval, all in one
+      # dvc repro call — validate-only, per the item-17 CT decision: nothing gets persisted
+      # from this job, it just has to succeed and stay under train.py's MAX_ACCEPTABLE_MAE_YEARS
+      # threshold (train.py exits non-zero on regression, which dvc repro propagates).
+      - name: Fetch real climate data and train (validate only)
+        run: dvc repro train_emulator
