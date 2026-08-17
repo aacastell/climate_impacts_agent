@@ -5,7 +5,11 @@ import numpy as np
 import xarray as xr
 
 from climate_agent.schemas import BBox, GridCell, Window
-from climate_agent.tools.analysis import grid_cells_in_bbox, sample_at_cells
+from climate_agent.tools.analysis import (
+    clamp_years_to_range,
+    grid_cells_in_bbox,
+    sample_at_cells,
+)
 
 CACHE_DIR = Path("data/cache")
 TAS_BASELINE_FILE = CACHE_DIR / "gfdl-esm4_r1i1p1f1_w5e5_historical_tas_global_daily_2011_2014.nc"
@@ -14,6 +18,7 @@ PR_BASELINE_FILE = CACHE_DIR / "gfdl-esm4_r1i1p1f1_w5e5_historical_pr_global_dai
 PR_FUTURE_FILE = CACHE_DIR / "gfdl-esm4_r1i1p1f1_w5e5_ssp370_pr_global_daily_2051_2060.nc"
 
 BASELINE_YEARS = (2011, 2014)  # matches the climate data scoping decision (item 8)
+FUTURE_CACHED_YEARS = (2051, 2060)  # the only future decade actually cached (item 8)
 KELVIN_TO_CELSIUS = 273.15
 MM_PER_DAY = 86400  # kg m-2 s-1 -> mm/day (1 kg/m2 of water = 1mm depth)
 HEAT_EXTREME_THRESHOLD_C = 35.0
@@ -109,22 +114,38 @@ def _driver_from_grids(
     return grid, f"{sign}{avg:.2f}{unit} vs. baseline."
 
 
-def compute_hazard_drivers(bbox: BBox, window: Window) -> tuple[dict[str, list[GridCell]], dict[str, str]]:
+def compute_hazard_drivers(
+    bbox: BBox, window: Window
+) -> tuple[dict[str, list[GridCell]], dict[str, str], list[str]]:
     """Change-vs-baseline grids and summary text for all four climate hazard drivers, from real
     cached tas/pr data.
 
     "Precipitation extreme days" is implemented as consecutive dry days (ETCCDI CDD convention,
     <1mm/day) — a real, standard precipitation-extreme index.
 
+    If the requested window falls outside the one decade actually cached (FUTURE_CACHED_YEARS),
+    clamps to the nearest cached range and reports it as an assumption — this was unreachable
+    with item 10's stub emulator (always returned an in-range window) but is a real, hit path
+    now that item 17's trained models can predict windows outside the cache.
+
     Args: bbox — target area. window — target future period.
-    Returns: (driver_grids, drivers) — per-driver GridCell lists, and per-driver summary strings.
+    Returns: (driver_grids, drivers, assumptions) — per-driver GridCell lists, per-driver summary
+    strings, and any assumptions from window clamping.
     """
     cells = grid_cells_in_bbox(bbox)
 
+    used_start, used_end, clamped = clamp_years_to_range(window.start_year, window.end_year, *FUTURE_CACHED_YEARS)
+    assumptions = []
+    if clamped:
+        assumptions.append(
+            f"Requested period {window.start_year}-{window.end_year} isn't cached — "
+            f"showing hazard data for {used_start}-{used_end} instead."
+        )
+
     tas_base_mean, tas_base_heat = _driver_stats(TAS_BASELINE_FILE, "tas", *BASELINE_YEARS)
-    tas_fut_mean, tas_fut_heat = _driver_stats(TAS_FUTURE_FILE, "tas", window.start_year, window.end_year)
+    tas_fut_mean, tas_fut_heat = _driver_stats(TAS_FUTURE_FILE, "tas", used_start, used_end)
     pr_base_mean, pr_base_dry = _driver_stats(PR_BASELINE_FILE, "pr", *BASELINE_YEARS)
-    pr_fut_mean, pr_fut_dry = _driver_stats(PR_FUTURE_FILE, "pr", window.start_year, window.end_year)
+    pr_fut_mean, pr_fut_dry = _driver_stats(PR_FUTURE_FILE, "pr", used_start, used_end)
 
     driver_grids: dict[str, list[GridCell]] = {}
     drivers: dict[str, str] = {}
@@ -142,4 +163,4 @@ def compute_hazard_drivers(bbox: BBox, window: Window) -> tuple[dict[str, list[G
         cells, pr_base_dry, pr_fut_dry, " consecutive dry days"
     )
 
-    return driver_grids, drivers
+    return driver_grids, drivers, assumptions

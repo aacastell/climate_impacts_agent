@@ -5,7 +5,11 @@ import numpy as np
 import xarray as xr
 
 from climate_agent.schemas import BBox, GridCell, Window
-from climate_agent.tools.analysis import grid_cells_in_bbox, sample_at_cells
+from climate_agent.tools.analysis import (
+    clamp_years_to_range,
+    grid_cells_in_bbox,
+    sample_at_cells,
+)
 
 CACHE_DIR = Path("data/cache")
 BASELINE_FILE = (
@@ -16,6 +20,7 @@ FUTURE_FILE = (
 )
 VARIABLE = "yield-mai-noirr"
 BASELINE_YEARS = (2011, 2014)  # matches the climate data scoping decision (item 8)
+FUTURE_CACHED_YEARS = (2015, 2100)  # the full future scenario period actually cached
 TIME_ORIGIN_YEAR = 1601  # file's time units: "growing seasons since 1601-01-01" (1 unit = 1 year)
 
 SECTOR_LABEL = "Maize yield"
@@ -38,18 +43,31 @@ def _mean_over_years(path: Path, start_year: int, end_year: int) -> xr.DataArray
     return ds[VARIABLE].sel(time=slice(start_idx, end_idx)).mean(dim="time")
 
 
-def compute_agriculture(bbox: BBox, window: Window) -> tuple[list[GridCell], str]:
+def compute_agriculture(bbox: BBox, window: Window) -> tuple[list[GridCell], str, list[str]]:
     """Change-vs-baseline maize yield impact grid and summary, from real cached LPJmL data.
 
+    If the requested window falls outside the cached future period, clamps to the nearest
+    cached range and reports it as an assumption (see hazard.py's compute_hazard_drivers for
+    why this became a real, reachable path with item 17's trained emulator models).
+
     Args: bbox — target area. window — target future period.
-    Returns: (impact_grid, sector_impact) — per-cell absolute yield change in t/ha
+    Returns: (impact_grid, sector_impact, assumptions) — per-cell absolute yield change in t/ha
     (baseline->future; not % change — near-zero baseline cells make relative change blow up
-    and dominate the average, verified against real data), and a summary string. Cells with no
-    data (ocean, non-arable land) are omitted from the grid.
+    and dominate the average, verified against real data), a summary string, and any assumptions
+    from window clamping. Cells with no data (ocean, non-arable land) are omitted from the grid.
     """
     cells = grid_cells_in_bbox(bbox)
+
+    used_start, used_end, clamped = clamp_years_to_range(window.start_year, window.end_year, *FUTURE_CACHED_YEARS)
+    assumptions = []
+    if clamped:
+        assumptions.append(
+            f"Requested period {window.start_year}-{window.end_year} isn't cached — "
+            f"showing agriculture data for {used_start}-{used_end} instead."
+        )
+
     baseline = sample_at_cells(_mean_over_years(BASELINE_FILE, *BASELINE_YEARS), cells)
-    future = sample_at_cells(_mean_over_years(FUTURE_FILE, window.start_year, window.end_year), cells)
+    future = sample_at_cells(_mean_over_years(FUTURE_FILE, used_start, used_end), cells)
 
     abs_change = future - baseline
 
@@ -60,8 +78,8 @@ def compute_agriculture(bbox: BBox, window: Window) -> tuple[list[GridCell], str
     ]
 
     if not impact_grid:
-        return [], f"{SECTOR_LABEL}: no data available for this area (non-agricultural land)."
+        return [], f"{SECTOR_LABEL}: no data available for this area (non-agricultural land).", assumptions
 
     avg = sum(c.value for c in impact_grid) / len(impact_grid)
     sign = "+" if avg >= 0 else ""
-    return impact_grid, f"{SECTOR_LABEL} change: {sign}{avg:.2f} t/ha vs. baseline."
+    return impact_grid, f"{SECTOR_LABEL} change: {sign}{avg:.2f} t/ha vs. baseline.", assumptions

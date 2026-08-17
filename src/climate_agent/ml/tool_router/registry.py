@@ -1,7 +1,12 @@
 from pathlib import Path
 
 from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    PreTrainedModel,
+    PreTrainedTokenizer,
+)
 
 BASE_MODEL_ID = "Qwen/Qwen2.5-0.5B-Instruct"
 ADAPTER_DIR = Path(__file__).parent / "adapter"

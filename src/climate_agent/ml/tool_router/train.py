@@ -1,10 +1,15 @@
 import json
 
 import mlflow
-import torch
 from datasets import Dataset
 from peft import LoraConfig, get_peft_model
-from transformers import AutoModelForCausalLM, AutoTokenizer, DataCollatorForSeq2Seq, Trainer, TrainingArguments
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    DataCollatorForSeq2Seq,
+    Trainer,
+    TrainingArguments,
+)
 
 from climate_agent.ml.tool_router.evaluate import evaluate, print_report
 from climate_agent.ml.tool_router.generate_data import SYSTEM_PROMPT, TRAIN_FILE

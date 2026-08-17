@@ -5,7 +5,11 @@ import numpy as np
 import xarray as xr
 
 from climate_agent.schemas import BBox, GridCell, Window
-from climate_agent.tools.analysis import grid_cells_in_bbox, sample_at_cells
+from climate_agent.tools.analysis import (
+    clamp_years_to_range,
+    grid_cells_in_bbox,
+    sample_at_cells,
+)
 
 CACHE_DIR = Path("data/cache")
 BASELINE_FILE = (
@@ -16,6 +20,7 @@ FUTURE_FILE = (
 )
 VARIABLE = "npp-total"
 BASELINE_YEARS = (2011, 2014)  # matches the climate data scoping decision (item 8)
+FUTURE_CACHED_YEARS = (2015, 2100)  # the full future scenario period actually cached
 TIME_ORIGIN_YEAR = 1601  # file's time units: "days since 1601-01-01", 365_day calendar
 DAYS_PER_YEAR = 365
 KG_TO_G = 1000
@@ -41,7 +46,7 @@ def _mean_over_years(path: Path, start_year: int, end_year: int) -> xr.DataArray
     return ds[VARIABLE].sel(time=slice(start_idx, end_idx)).mean(dim="time")
 
 
-def compute_biome(bbox: BBox, window: Window) -> tuple[list[GridCell], str]:
+def compute_biome(bbox: BBox, window: Window) -> tuple[list[GridCell], str, list[str]]:
     """Change-vs-baseline net primary productivity impact grid and summary, from real cached
     CLASSIC data.
 
@@ -50,14 +55,27 @@ def compute_biome(bbox: BBox, window: Window) -> tuple[list[GridCell], str]:
     across the full 1850-2100 span). NPP is a genuinely climate-responsive CLASSIC output
     instead (verified: real seasonal cycle, real baseline-vs-future difference).
 
+    If the requested window falls outside the cached future period, clamps to the nearest
+    cached range and reports it as an assumption (see hazard.py's compute_hazard_drivers for
+    why this became a real, reachable path with item 17's trained emulator models).
+
     Args: bbox — target area. window — target future period.
-    Returns: (impact_grid, sector_impact) — per-cell absolute NPP change in g C/m²/yr
-    (baseline->future, converted from the file's native kg m-2 s-1 for readability), and a
-    summary string. Cells with no data are omitted from the grid.
+    Returns: (impact_grid, sector_impact, assumptions) — per-cell absolute NPP change in
+    g C/m²/yr (baseline->future, converted from the file's native kg m-2 s-1 for readability),
+    a summary string, and any assumptions from window clamping. Cells with no data are omitted.
     """
     cells = grid_cells_in_bbox(bbox)
+
+    used_start, used_end, clamped = clamp_years_to_range(window.start_year, window.end_year, *FUTURE_CACHED_YEARS)
+    assumptions = []
+    if clamped:
+        assumptions.append(
+            f"Requested period {window.start_year}-{window.end_year} isn't cached — "
+            f"showing biome data for {used_start}-{used_end} instead."
+        )
+
     baseline = sample_at_cells(_mean_over_years(BASELINE_FILE, *BASELINE_YEARS), cells)
-    future = sample_at_cells(_mean_over_years(FUTURE_FILE, window.start_year, window.end_year), cells)
+    future = sample_at_cells(_mean_over_years(FUTURE_FILE, used_start, used_end), cells)
 
     abs_change = (future - baseline) * KG_TO_G * SECONDS_PER_YEAR
 
@@ -68,8 +86,8 @@ def compute_biome(bbox: BBox, window: Window) -> tuple[list[GridCell], str]:
     ]
 
     if not impact_grid:
-        return [], f"{SECTOR_LABEL}: no data available for this area."
+        return [], f"{SECTOR_LABEL}: no data available for this area.", assumptions
 
     avg = sum(c.value for c in impact_grid) / len(impact_grid)
     sign = "+" if avg >= 0 else ""
-    return impact_grid, f"{SECTOR_LABEL} change: {sign}{avg:.1f} g C/m²/yr vs. baseline."
+    return impact_grid, f"{SECTOR_LABEL} change: {sign}{avg:.1f} g C/m²/yr vs. baseline.", assumptions

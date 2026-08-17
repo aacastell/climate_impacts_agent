@@ -69,3 +69,17 @@ stages:
       - src/climate_agent/rag/corpus.py
     outs:
       - src/climate_agent/rag/corpus.json
+
+  train_emulator:
+    cmd: python -m climate_agent.ml.emulator.train
+    deps:
+      - data/cache/gfdl-esm4_r1i1p1f1_w5e5_historical_tas_global_daily_2011_2014.nc
+      - data/cache/gfdl-esm4_r1i1p1f1_w5e5_ssp370_tas_global_daily_2051_2060.nc
+      - data/cache/gfdl-esm4_r1i1p1f1_w5e5_historical_pr_global_daily_2011_2014.nc
+      - data/cache/gfdl-esm4_r1i1p1f1_w5e5_ssp370_pr_global_daily_2051_2060.nc
+      - src/climate_agent/tools/hazard.py
+      - src/climate_agent/ml/emulator/generate_data.py
+      - src/climate_agent/ml/emulator/model.py
+      - src/climate_agent/ml/emulator/train.py
+    outs:
+      - src/climate_agent/ml/emulator/models/

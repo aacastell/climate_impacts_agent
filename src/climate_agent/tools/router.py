@@ -1,6 +1,9 @@
 from functools import lru_cache
 
-from climate_agent.ml.tool_router.evaluate import generate_completion, parse_router_output
+from climate_agent.ml.tool_router.evaluate import (
+    generate_completion,
+    parse_router_output,
+)
 from climate_agent.ml.tool_router.registry import load_router_model
 
 

@@ -1,7 +1,8 @@
 import operator
 from typing import Annotated, Literal, TypedDict
 
-from climate_agent.schemas import BBox, GridCell
+from climate_agent.schemas import GridCell
+
 
 class ToolCall(TypedDict):
     tool: str

@@ -1,4 +1,4 @@
-import httpx 
+import httpx
 
 from climate_agent.schemas import BBox
 

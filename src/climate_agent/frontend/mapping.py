@@ -1,3 +1,5 @@
+from itertools import pairwise
+
 import pandas as pd
 import pydeck as pdk
 import streamlit as st
@@ -39,7 +41,7 @@ def grid_to_dataframe(grid: list[dict], color_hex: str) -> pd.DataFrame:
 
 def _min_step(values: pd.Series) -> float:
     unique_sorted = sorted(values.unique())
-    diffs = [b - a for a, b in zip(unique_sorted, unique_sorted[1:])]
+    diffs = [b - a for a, b in pairwise(unique_sorted)]
     return min(diffs) if diffs else 1.0
 
 
