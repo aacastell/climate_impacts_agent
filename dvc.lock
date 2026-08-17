@@ -114,33 +114,33 @@ stages:
     deps:
     - path: src/climate_agent/data/download/biome.py
       hash: md5
-      md5: 756c7d18aacacec6854dbad3e2bc1c51
-      size: 1133
+      md5: bb4970c9eb046d2f3ef1751359bccdcf
+      size: 1452
     - path: src/climate_agent/data/download/client.py
       hash: md5
       md5: 1bf05d546d3d30335ccf6b86bb5a3dd6
       size: 3307
     outs:
     - path: 
-        data/cache/classic_gfdl-esm4_w5e5_historical_2015soc_default_pft-c4grass_global_annual_1850_2014.nc
+        data/cache/classic_gfdl-esm4_w5e5_historical_2015soc_default_npp-total_global_monthly_1850_2014.nc
       hash: md5
-      md5: 102f2c0e09ae9f40d84b4b627656d4ac
-      size: 12186450
+      md5: e6609a294db6ad774df332b39b4f3ec3
+      size: 231918858
   fetch_biome_future:
     cmd: python -m climate_agent.data.download.biome --window future --cache-dir
       data/cache
     deps:
     - path: src/climate_agent/data/download/biome.py
       hash: md5
-      md5: 756c7d18aacacec6854dbad3e2bc1c51
-      size: 1133
+      md5: bb4970c9eb046d2f3ef1751359bccdcf
+      size: 1452
     - path: src/climate_agent/data/download/client.py
       hash: md5
       md5: 1bf05d546d3d30335ccf6b86bb5a3dd6
       size: 3307
     outs:
     - path: 
-        data/cache/classic_gfdl-esm4_w5e5_ssp370_2015soc_default_pft-c4grass_global_annual_2015_2100.nc
+        data/cache/classic_gfdl-esm4_w5e5_ssp370_2015soc_default_npp-total_global_monthly_2015_2100.nc
       hash: md5
-      md5: 15eb89f9c0179eabd7c51909bc8b21f7
-      size: 6367025
+      md5: 96c8cd2b8bdd47c78c7ecc8e80fe538e
+      size: 120758674

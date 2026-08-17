@@ -53,7 +53,7 @@ stages:
       - src/climate_agent/data/download/client.py
       - src/climate_agent/data/download/biome.py
     outs:
-      - data/cache/classic_gfdl-esm4_w5e5_historical_2015soc_default_pft-c4grass_global_annual_1850_2014.nc
+      - data/cache/classic_gfdl-esm4_w5e5_historical_2015soc_default_npp-total_global_monthly_1850_2014.nc
 
   fetch_biome_future:
     cmd: python -m climate_agent.data.download.biome --window future --cache-dir data/cache
@@ -61,4 +61,4 @@ stages:
       - src/climate_agent/data/download/client.py
       - src/climate_agent/data/download/biome.py
     outs:
-      - data/cache/classic_gfdl-esm4_w5e5_ssp370_2015soc_default_pft-c4grass_global_annual_2015_2100.nc
+      - data/cache/classic_gfdl-esm4_w5e5_ssp370_2015soc_default_npp-total_global_monthly_2015_2100.nc

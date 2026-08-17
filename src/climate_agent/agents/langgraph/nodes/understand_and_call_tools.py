@@ -52,11 +52,12 @@ def understand_and_call_tools(state: AgentState) -> dict:
         }
 
     # Stopgap: hardcoded 2.0 stands in for real GWL extraction (tool #1, not built yet).
-    # Real node/state wiring for Window (vs. this display-string patch) is still pending.
     window = window_from_gwl(2.0)
     gwl = f"{gwl_text} ({window.start_year}-{window.end_year})"
+
     sector_tool = SECTOR_TOOLS[sector]
-    impact_grid, sector_impact = sector_tool(bbox, gwl)
+    impact_grid, sector_impact = sector_tool(bbox, window)
+    # hazard.py is still stub (item 12) — keeps the old string-based gwl arg until it goes real.
     driver_grids, drivers = compute_hazard_drivers(bbox, gwl)
 
     return {
@@ -72,7 +73,7 @@ def understand_and_call_tools(state: AgentState) -> dict:
         "sector_impact": sector_impact,
         "tool_calls": [
             ToolCall(tool="geocode", args={"region": region}, result="ok"),
-            ToolCall(tool=f"sector:{sector}", args={"bbox": str(bbox), "gwl": gwl}, result="ok"),
+            ToolCall(tool=f"sector:{sector}", args={"bbox": str(bbox), "window": str(window)}, result="ok"),
             ToolCall(tool="hazard", args={"bbox": str(bbox), "gwl": gwl}, result="ok"),
         ],
     }
