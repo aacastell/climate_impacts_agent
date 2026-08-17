@@ -19,8 +19,9 @@ data/cache/
 data/rag_index/
 *.gguf
 *.safetensors
-ml/**/checkpoints/
-ml/**/*.bin
+**/ml/**/checkpoints/
+**/ml/**/*.bin
+**/ml/emulator/models/
 
 # OS
 

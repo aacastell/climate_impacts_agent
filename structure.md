@@ -18,6 +18,8 @@ what's actually been built.
     ├── rag/             corpus.py, embed.py, index.py
     ├── ml/
     │   ├── emulator/    train.py, evaluate.py, model.py, registry.py
+    │   │                — 3 window-prediction models: gwl (direct), heat_extreme
+    │   │                  and precip_extreme (indirect) GWL resolution
     │   └── tool_router/ generate_data.py, train.py, evaluate.py, registry.py
     ├── observability/   metrics.py, tracing.py
     ├── guardrails.py

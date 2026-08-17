@@ -2,7 +2,7 @@ from climate_agent.agents.langgraph.state import AgentState, ToolCall
 from climate_agent.schemas import BBox
 from climate_agent.tools.agriculture import compute_agriculture
 from climate_agent.tools.biome import compute_biome
-from climate_agent.tools.gwl import resolve_gwl
+from climate_agent.tools.gwl import window_from_gwl
 from climate_agent.tools.hazard import compute_hazard_drivers
 from climate_agent.tools.region import geocode
 
@@ -51,7 +51,10 @@ def understand_and_call_tools(state: AgentState) -> dict:
             "assumptions": [f"Could not resolve '{region}' to a specific location — showing a default area."],
         }
 
-    gwl = resolve_gwl(gwl_text)
+    # Stopgap: hardcoded 2.0 stands in for real GWL extraction (tool #1, not built yet).
+    # Real node/state wiring for Window (vs. this display-string patch) is still pending.
+    window = window_from_gwl(2.0)
+    gwl = f"{gwl_text} ({window.start_year}-{window.end_year})"
     sector_tool = SECTOR_TOOLS[sector]
     impact_grid, sector_impact = sector_tool(bbox, gwl)
     driver_grids, drivers = compute_hazard_drivers(bbox, gwl)
