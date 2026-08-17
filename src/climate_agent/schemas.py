@@ -18,6 +18,11 @@ class GridCell(BaseModel):
     value: float
 
 
+class Window(BaseModel):
+    start_year: int
+    end_year: int
+
+
 class QueryResponse(BaseModel):
     region: str
     gwl: str

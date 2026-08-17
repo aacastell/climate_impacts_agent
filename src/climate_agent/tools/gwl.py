@@ -1,12 +1,17 @@
-def resolve_gwl(gwl_text: str) -> str:
-    """Normalize a free-text warming-level target. Stub: passthrough only.
+from climate_agent.ml.emulator.registry import predict_window
+from climate_agent.schemas import Window
 
-    Real resolution (per-model year-window crossing, ISIMIP GWL protocol) needs actual per-model
-    temperature trajectories this project doesn't have yet — faking that structure now would risk
-    locking in a guessed shape rather than the real one, so this stays a minimal passthrough
-    until item 10 lands.
 
-    Args: gwl_text — warming level as typed/extracted (e.g. "2°C", "2 degrees").
-    Returns: gwl_text, unchanged (whitespace-trimmed).
-    """
-    return gwl_text.strip()
+def window_from_gwl(gwl_celsius: float) -> Window:
+    """Predict a target window from a direct GWL target (e.g. 2.0 for "2°C")."""
+    return predict_window("window_from_gwl", gwl_celsius)
+
+
+def window_from_heat_extremes(heat_extreme_days: float) -> Window:
+    """Predict a target window from a target heat-extreme-days value."""
+    return predict_window("window_from_heat_extremes", heat_extreme_days)
+
+
+def window_from_precip_extremes(precip_extreme_pct: float) -> Window:
+    """Predict a target window from a target precip-extreme value."""
+    return predict_window("window_from_precip_extremes", precip_extreme_pct)
