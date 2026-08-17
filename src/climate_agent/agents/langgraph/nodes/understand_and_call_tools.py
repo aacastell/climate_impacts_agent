@@ -57,8 +57,7 @@ def understand_and_call_tools(state: AgentState) -> dict:
 
     sector_tool = SECTOR_TOOLS[sector]
     impact_grid, sector_impact = sector_tool(bbox, window)
-    # hazard.py is still stub (item 12) — keeps the old string-based gwl arg until it goes real.
-    driver_grids, drivers = compute_hazard_drivers(bbox, gwl)
+    driver_grids, drivers = compute_hazard_drivers(bbox, window)
 
     return {
         "attempts": attempts,
@@ -74,6 +73,6 @@ def understand_and_call_tools(state: AgentState) -> dict:
         "tool_calls": [
             ToolCall(tool="geocode", args={"region": region}, result="ok"),
             ToolCall(tool=f"sector:{sector}", args={"bbox": str(bbox), "window": str(window)}, result="ok"),
-            ToolCall(tool="hazard", args={"bbox": str(bbox), "gwl": gwl}, result="ok"),
+            ToolCall(tool="hazard", args={"bbox": str(bbox), "window": str(window)}, result="ok"),
         ],
     }
