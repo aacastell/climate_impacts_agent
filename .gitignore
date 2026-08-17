@@ -21,8 +21,12 @@ data/cache/
 **/ml/**/checkpoints/
 **/ml/**/*.bin
 **/ml/emulator/models/
+**/ml/tool_router/adapter/
+**/ml/tool_router/data/
 **/rag/embeddings.npy
 **/rag/corpus.json
+mlruns/
+mlflow.db
 
 # OS
 
