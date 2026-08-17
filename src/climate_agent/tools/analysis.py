@@ -8,6 +8,7 @@ from climate_agent.schemas import BBox
 
 GRID_RESOLUTION_DEG = 0.5  # matches the ISIMIP/GGCMI global simulation grid
 MIN_CELLS_PER_SIDE = 3  # ensures a tiny region still renders as a visible patch, not a single point
+MAX_TOTAL_CELLS = 2500  # caps grid size for huge/degenerate bboxes — see _resolution_for_bbox
 
 
 def _grid_line(min_value: float, max_value: float, resolution: float) -> list[float]:
@@ -26,7 +27,15 @@ def _grid_line(min_value: float, max_value: float, resolution: float) -> list[fl
 
 
 def _resolution_for_bbox(bbox: BBox, base_resolution: float, min_cells: int) -> float:
-    """Grid resolution for a bbox, shrunk so small regions still render a visible grid.
+    """Grid resolution for a bbox — shrunk so small regions still render a visible grid, grown
+    so huge ones stay under MAX_TOTAL_CELLS.
+
+    The grow side is real, not theoretical: found live that Nominatim's actual bbox for Russia
+    is min_lon=-180/max_lon=180 (real behavior for any antimeridian-spanning country — a normal
+    min/max box can't represent "wraps around 180°" any other way), which produced 59,040 cells
+    at base resolution — too many for the frontend to render as anything but a hang. Big
+    countries generally get coarser cells here, not fewer regions supported — "no maximum
+    region size" was always about data fetching, never about unbounded grid density.
 
     Args: bbox — target area. base_resolution — default spacing (degrees). min_cells — minimum cells per side.
     Returns: resolution in degrees — capped at base_resolution, floored near zero.
@@ -38,6 +47,8 @@ def _resolution_for_bbox(bbox: BBox, base_resolution: float, min_cells: int) -> 
         resolution = min(resolution, lat_span / min_cells)
     if lon_span > 0:
         resolution = min(resolution, lon_span / min_cells)
+    if lat_span > 0 and lon_span > 0:
+        resolution = max(resolution, ((lat_span * lon_span) / MAX_TOTAL_CELLS) ** 0.5)
     return max(resolution, 1e-4)  # numerical floor (~11m) so a literal point can't yield zero cells
 
 

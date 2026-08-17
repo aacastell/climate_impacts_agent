@@ -27,6 +27,7 @@ class QueryResponse(BaseModel):
     region: str
     gwl: str
     sector: str
+    language: str = "English"
     bbox: BBox
     sector_impact: str
     narration: str

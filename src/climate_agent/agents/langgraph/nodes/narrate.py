@@ -15,6 +15,7 @@ def narrate(state: AgentState) -> dict:
         sector_impact=state["sector_impact"],
         drivers=state["drivers"],
         driver_context=state["driver_context"],
+        language=state.get("language") or "English",
     )
     if state.get("assumptions"):
         narration += " Note: " + " ".join(state["assumptions"])

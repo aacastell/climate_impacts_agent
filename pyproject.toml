@@ -18,6 +18,8 @@ dependencies = [
     "pydeck>=0.9",
     "dvc",
     "mlflow>=2.17",
+    "beautifulsoup4>=4.12",
+    "langdetect>=1.0.9",
 ]
 
 [project.optional-dependencies]

@@ -17,9 +17,15 @@ def fetch_query(query: str) -> dict:
         response = httpx.post(
             f"{API_BASE_URL}/query",
             json={"query": query},
-            timeout=10.0,
+            timeout=180.0,
         )
         response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        try:
+            detail = e.response.json().get("detail", str(e))
+        except ValueError:
+            detail = str(e)
+        raise QueryError(detail) from e
     except httpx.HTTPError as e:
         raise QueryError(str(e)) from e
     return response.json()

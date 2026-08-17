@@ -1,8 +1,11 @@
 name: CI
 
+# Manual-only while still actively in development — automatic triggers commented out below,
+# restore them once the project is stable enough for CI to run against every commit for real.
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+  # push:
+  # pull_request:
 
 jobs:
   test:
