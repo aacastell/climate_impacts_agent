@@ -28,11 +28,16 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: pip install -e .
-      # No real data is fetched here (data/cache/ is gitignored, never in the checkout) — this
-      # validates pipeline structure and dependency resolution, catching config drift like the
-      # item-13 stale-corpus bug (a stage's deps/outs no longer matching reality) at CI time
-      # instead of only when someone runs it locally.
+      # `dvc dag` validates stage topology/structure without touching any real data — catches
+      # config drift like the item-13 stale-corpus bug (a stage's deps/outs no longer matching
+      # reality) at CI time instead of only when someone runs it locally.
+      #
+      # `dvc repro --dry` was tried here too but doesn't work in a fresh checkout: for a stage
+      # whose deps are themselves another stage's outs (train_emulator depends on the cached
+      # climate files fetch_tas_baseline etc. produce), dry-run tries to read that dependency
+      # file to hash it rather than gracefully reporting "would run" — and since data/cache/ is
+      # gitignored, that file doesn't exist yet in CI, so it hard-fails (exit 255, reproduced
+      # locally via a genuine fresh clone before writing this). Real end-to-end validation of
+      # train_emulator with real data happens in ct.yml instead, which actually has the data.
       - name: Validate DVC pipeline structure
-        run: |
-          dvc dag
-          dvc repro --dry
+        run: dvc dag
