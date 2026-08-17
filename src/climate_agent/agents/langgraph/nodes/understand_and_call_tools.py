@@ -8,6 +8,7 @@ from climate_agent.tools.gwl import (
     window_from_precip_extremes,
 )
 from climate_agent.tools.hazard import compute_hazard_drivers
+from climate_agent.tools.language import detect_language
 from climate_agent.tools.region import geocode
 from climate_agent.tools.router import extract_query_fields
 
@@ -62,6 +63,7 @@ def understand_and_call_tools(state: AgentState) -> dict:
     """
     attempts = state["attempts"] + 1
     assumptions: list[str] = []
+    language = detect_language(state["query"])
 
     extracted = extract_query_fields(state["query"]) or {}
     if not extracted:
@@ -89,27 +91,31 @@ def understand_and_call_tools(state: AgentState) -> dict:
         gwl_value = DEFAULT_GWL_VALUE
 
     bbox = geocode(region)
+    status = "ready_to_narrate"
 
-    if bbox is None:
-        if attempts < MAX_TOOL_ATTEMPTS:
-            return {
-                "attempts": attempts,
-                "status": "resolving",
-                "assumptions": assumptions,
-                "tool_calls": [ToolCall(tool="geocode", args={"region": region}, result=None)],
-            }
+    if bbox is None and attempts < MAX_TOOL_ATTEMPTS:
         return {
             "attempts": attempts,
-            "status": "degraded",
-            "region": region,
-            "bbox": BBox(min_lat=-5.0, min_lon=-5.0, max_lat=5.0, max_lon=5.0),
-            "gwl": f"{gwl_value} [{gwl_mode}]",
-            "sector": sector,
-            "assumptions": [
-                *assumptions,
-                f"Could not resolve '{region}' to a specific location — showing a default area.",
-            ],
+            "status": "resolving",
+            "language": language,
+            "assumptions": assumptions,
+            "tool_calls": [ToolCall(tool="geocode", args={"region": region}, result=None)],
         }
+
+    if bbox is None:
+        # Exhausted retries — degrade to a default area, but still compute a real, complete
+        # answer for it. Real bug found live (2026-08-17): this used to return early here
+        # without ever computing drivers/sector_impact, and the graph routes "degraded" the
+        # same as "ready_to_narrate" into retrieve_context — which crashed on the missing
+        # data (AttributeError: 'NoneType' object has no attribute 'items'). "Bounded resolve,
+        # else honest degrade" always meant *deliver a full answer* with a stated assumption,
+        # never a dead end — a crash is exactly the dead end that pattern was built to avoid.
+        bbox = BBox(min_lat=-5.0, min_lon=-5.0, max_lat=5.0, max_lon=5.0)
+        status = "degraded"
+        assumptions = [
+            *assumptions,
+            f"Could not resolve '{region}' to a specific location — showing a default area.",
+        ]
 
     window_tool = WINDOW_TOOLS[gwl_mode]
     window = window_tool(gwl_value)
@@ -122,11 +128,12 @@ def understand_and_call_tools(state: AgentState) -> dict:
 
     return {
         "attempts": attempts,
-        "status": "ready_to_narrate",
+        "status": status,
         "region": region,
         "bbox": bbox,
         "gwl": gwl,
         "sector": sector,
+        "language": language,
         "impact_grid": impact_grid,
         "driver_grids": driver_grids,
         "drivers": drivers,

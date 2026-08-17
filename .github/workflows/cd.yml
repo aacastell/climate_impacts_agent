@@ -1,8 +1,11 @@
 name: CD
 
+# Manual-only while still actively in development — automatic trigger commented out below,
+# restore it once the project is stable enough for every merge to main to auto-publish an image.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
 
 jobs:
   build-and-push:

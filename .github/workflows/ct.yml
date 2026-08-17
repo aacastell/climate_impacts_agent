@@ -1,18 +1,20 @@
 name: CT
 
+# Manual-only while still actively in development — automatic triggers commented out below,
+# restore them once the project is stable enough for CT to run against every commit for real.
 on:
   workflow_dispatch:
-  schedule:
-    # Monthly — re-validates training still works even with zero code changes, since the real
-    # trigger for "new data available" lives at ISIMIP (external), not in this git repo. A
-    # push-based trigger on data/cache/ can't exist since that directory is gitignored and
-    # never committed; this schedule + the path filter below are the two real signals available.
-    - cron: "0 0 1 * *"
-  push:
-    paths:
-      - "src/climate_agent/ml/emulator/**"
-      - "src/climate_agent/tools/hazard.py"
-      - "src/climate_agent/data/download/**"
+  # schedule:
+  #   # Monthly — re-validates training still works even with zero code changes, since the real
+  #   # trigger for "new data available" lives at ISIMIP (external), not in this git repo. A
+  #   # push-based trigger on data/cache/ can't exist since that directory is gitignored and
+  #   # never committed; this schedule + the path filter below are the two real signals available.
+  #   - cron: "0 0 1 * *"
+  # push:
+  #   paths:
+  #     - "src/climate_agent/ml/emulator/**"
+  #     - "src/climate_agent/tools/hazard.py"
+  #     - "src/climate_agent/data/download/**"
 
 jobs:
   validate-training:

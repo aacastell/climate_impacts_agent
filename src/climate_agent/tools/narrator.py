@@ -13,15 +13,18 @@ def generate_narration(
     sector_impact: str,
     drivers: dict[str, str],
     driver_context: dict[str, str],
+    language: str = "English",
 ) -> str:
     """Generate a short narration grounded in resolved climate-impact data, via a local Ollama LLM.
 
     Args: region, gwl, sector, sector_impact, drivers, driver_context — resolved state fields.
+    language — human-readable language name (from tools/language.py's real detection, not
+    guessed) to respond in; source data/labels stay English regardless, the model translates.
     Returns: narration text.
     """
     prompt = (
-        "Write a short (3-4 sentence) narration explaining climate impacts, grounded ONLY in "
-        "the data below. Do not invent numbers not shown here.\n\n"
+        f"Write a short (3-4 sentence) narration IN {language.upper()} explaining climate "
+        "impacts, grounded ONLY in the data below. Do not invent numbers not shown here.\n\n"
         f"Region: {region}\n"
         f"GWL: {gwl}\n"
         f"Sector: {sector}\n"

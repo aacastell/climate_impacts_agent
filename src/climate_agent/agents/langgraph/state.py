@@ -25,6 +25,7 @@ class AgentState(TypedDict):
     bbox: str | None
     gwl: str | None
     sector: str | None
+    language: str | None
 
     impact_grid: list[GridCell] | None
     driver_grids: dict[str, list[GridCell]] | None

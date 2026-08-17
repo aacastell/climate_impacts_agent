@@ -15,7 +15,8 @@ query_text, ask = render_query_bar()
 
 if ask:
     try:
-        result = fetch_query(query_text)
+        with st.spinner("Spelunking through real climate data and NASA science..."):
+            result = fetch_query(query_text)
     except QueryError as e:
         st.error(f"Couldn't reach the backend: {e}")
     else:
