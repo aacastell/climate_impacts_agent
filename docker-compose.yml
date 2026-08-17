@@ -9,10 +9,12 @@ services:
         environment:
             - ORCHESTRATION_BACKEND=graph
             - OLLAMA_BASE_URL=http://host.docker.internal:11434
+            - MLFLOW_TRACKING_URI=sqlite:///mlflow_data/mlflow.db
         volumes:
             - ./src:/app/src
             - ./data/cache:/app/data/cache
-        
+            - ./mlflow_data:/app/mlflow_data
+
     frontend:
         build: .
         command: streamlit run src/climate_agent/frontend/app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true

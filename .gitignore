@@ -28,6 +28,7 @@ data/cache/
 **/rag/corpus.json
 mlruns/
 mlflow.db
+mlflow_data/
 
 # OS
 
