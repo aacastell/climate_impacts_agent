@@ -16,12 +16,13 @@ venv/
 # Data & Model artifacts (large, regenerable - not commited)
 
 data/cache/
-data/rag_index/
 *.gguf
 *.safetensors
 **/ml/**/checkpoints/
 **/ml/**/*.bin
 **/ml/emulator/models/
+**/rag/embeddings.npy
+**/rag/corpus.json
 
 # OS
 

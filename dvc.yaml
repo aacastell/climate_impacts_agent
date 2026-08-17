@@ -62,3 +62,10 @@ stages:
       - src/climate_agent/data/download/biome.py
     outs:
       - data/cache/classic_gfdl-esm4_w5e5_ssp370_2015soc_default_npp-total_global_monthly_2015_2100.nc
+
+  fetch_rag_corpus:
+    cmd: python -m climate_agent.rag.corpus
+    deps:
+      - src/climate_agent/rag/corpus.py
+    outs:
+      - src/climate_agent/rag/corpus.json
