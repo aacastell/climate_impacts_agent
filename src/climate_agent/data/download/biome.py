@@ -7,7 +7,12 @@ WINDOWS = {"baseline": "historical", "future": "ssp370"}
 
 
 def fetch_biome(window: str, cache_dir: Path) -> Path:
-    """Download the c4grass plant-functional-type fraction dataset (CLASSIC) for a given window.
+    """Download the total NPP (net primary productivity) dataset (CLASSIC) for a given window.
+
+    Was originally scoped to the pft/c4grass land-cover fraction, but that variable turned out
+    to be static under the 2015soc scenario (confirmed against real data: ~0 variance globally
+    across the full 1850-2100 span) — no climate signal at all. NPP is a genuinely
+    climate-responsive CLASSIC output instead.
 
     Args: window — "baseline" or "future" (see WINDOWS). cache_dir — destination directory.
     Returns: path to the cached, checksum-verified file.
@@ -16,8 +21,8 @@ def fetch_biome(window: str, cache_dir: Path) -> Path:
         product="OutputData",
         sector="biomes",
         model="classic",
-        variable="pft",
-        pft="c4grass",
+        variable="npp",
+        pft="total",
         soc_scenario="2015soc",
         climate_scenario=WINDOWS[window],
     )

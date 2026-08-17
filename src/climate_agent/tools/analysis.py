@@ -1,6 +1,9 @@
 import math
 import random
 
+import numpy as np
+import xarray as xr
+
 from climate_agent.schemas import BBox
 
 GRID_RESOLUTION_DEG = 0.5  # matches the ISIMIP/GGCMI global simulation grid
@@ -48,6 +51,23 @@ def grid_cells_in_bbox(bbox: BBox) -> list[tuple[float, float]]:
     lats = _grid_line(bbox.min_lat, bbox.max_lat, resolution)
     lons = _grid_line(bbox.min_lon, bbox.max_lon, resolution)
     return [(lat, lon) for lat in lats for lon in lons]
+
+
+def sample_at_cells(data: xr.DataArray, cells: list[tuple[float, float]]) -> np.ndarray:
+    """Nearest-neighbor sample a 2D (lat, lon) DataArray at each grid cell center.
+
+    Args: data — 2D DataArray indexed by lat, lon. cells — (lat, lon) tuples, e.g. from
+    grid_cells_in_bbox.
+    Returns: array of sampled values, one per cell, same order as `cells`.
+    """
+    lats = [lat for lat, lon in cells]
+    lons = [lon for lat, lon in cells]
+    sampled = data.sel(
+        lat=xr.DataArray(lats, dims="points"),
+        lon=xr.DataArray(lons, dims="points"),
+        method="nearest",
+    )
+    return sampled.values
 
 
 def stub_value(seed: str, lat: float, lon: float, low: float, high: float) -> float:
