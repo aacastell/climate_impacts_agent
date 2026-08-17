@@ -1,6 +1,8 @@
+import os
+
 import httpx
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 NARRATOR_MODEL = "qwen2.5:7b"
 
 
@@ -28,7 +30,7 @@ def generate_narration(
         f"Driver context (real scientific sources): {driver_context}\n"
     )
     response = httpx.post(
-        OLLAMA_URL,
+        f"{OLLAMA_BASE_URL}/api/generate",
         json={"model": NARRATOR_MODEL, "prompt": prompt, "stream": False},
         timeout=120.0,
     )
