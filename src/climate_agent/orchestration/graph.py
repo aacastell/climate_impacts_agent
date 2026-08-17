@@ -1,10 +1,18 @@
+import mlflow
+from mlflow.entities import SpanType
+
 from climate_agent.agents.langgraph.graph import compiled_graph
 from climate_agent.agents.langgraph.state import AgentState
+from climate_agent.observability.metrics import record_query_metrics
 from climate_agent.schemas import QueryResponse
 
 
+@mlflow.trace(name="query", span_type=SpanType.CHAIN)
 def query(query_text: str) -> QueryResponse:
     """Run the LangGraph orchestration for a query, mapped to the API's response shape.
+
+    Traced end to end via MLflow (root span here, child spans per graph node) — see
+    observability/tracing.py and observability/metrics.py.
 
     Args: query_text — the user's raw query.
     Returns: QueryResponse, built from the graph's final resolved state.
@@ -30,6 +38,7 @@ def query(query_text: str) -> QueryResponse:
     }
 
     final_state = compiled_graph.invoke(initial_state)
+    record_query_metrics(final_state)
 
     return QueryResponse(
         region=final_state["region"],
