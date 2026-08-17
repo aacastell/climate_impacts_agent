@@ -1,8 +1,9 @@
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
+from climate_agent.guardrails import validate_query
 from climate_agent.schemas import QueryRequest, QueryResponse
 
 load_dotenv()
@@ -27,4 +28,7 @@ def health() -> dict[str, str]:
 
 @app.post("/query", response_model=QueryResponse)
 def query(request: QueryRequest) -> QueryResponse:
+    rejection_reason = validate_query(request.query)
+    if rejection_reason:
+        raise HTTPException(status_code=400, detail=rejection_reason)
     return run_query(request.query)
