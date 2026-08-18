@@ -27,7 +27,11 @@ def load_router_model() -> tuple[PreTrainedModel, PreTrainedTokenizer]:
     Returns: (model, tokenizer), model in eval mode.
     """
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_ID)
-    base_model = AutoModelForCausalLM.from_pretrained(BASE_MODEL_ID, torch_dtype="auto")
+    base_model = AutoModelForCausalLM.from_pretrained(
+        BASE_MODEL_ID,
+        torch_dtype="auto",
+        low_cpu_mem_usage=True,
+    )
     model = PeftModel.from_pretrained(base_model, str(ADAPTER_DIR))
     model.eval()
     return model, tokenizer

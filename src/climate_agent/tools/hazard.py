@@ -23,6 +23,8 @@ KELVIN_TO_CELSIUS = 273.15
 MM_PER_DAY = 86400  # kg m-2 s-1 -> mm/day (1 kg/m2 of water = 1mm depth)
 HEAT_EXTREME_THRESHOLD_C = 35.0
 DRY_DAY_THRESHOLD_MM = 1.0  # ETCCDI "dry day" convention
+BBOX_PAD_DEG = 2.0  # generous margin so nearest-neighbor sampling near the bbox edge still finds real data
+
 
 
 def _max_consecutive_true(bool_arr: np.ndarray) -> np.ndarray:
@@ -55,25 +57,45 @@ def _annual_consecutive_dry_days(is_dry: xr.DataArray) -> xr.DataArray:
     )
 
 
-@lru_cache(maxsize=32)
-def _driver_stats(path: Path, variable: str, start_year: int, end_year: int) -> tuple[xr.DataArray, xr.DataArray]:
-    """This variable's global mean and extreme-day grid, over an inclusive calendar-year range.
+@lru_cache(maxsize=64)
+def _driver_stats(
+    path: Path,
+    variable: str,
+    start_year: int,
+    end_year: int,
+    min_lat: float,
+    min_lon: float,
+    max_lat: float,
+    max_lon: float,
+) -> tuple[xr.DataArray, xr.DataArray]:
+    """This variable's regional mean and extreme-day grid, over an inclusive calendar-year range,
+    subset to a padded bbox.
 
-    Cached by (path, variable, start_year, end_year) — the file's internal chunking is one full
-    global grid per day (measured: a small padded-bbox slice costs ~4.5s, the whole globe costs
-    ~8s — the chunking makes region-first slicing pointless, since decompression cost is
-    dominated by number of days, not spatial extent requested). So this loads the full daily
-    global grid once, derives every reduction needed from that one in-memory array, then lets it
-    be discarded — only the small (lat, lon) reduced grids are cached, not the ~2GB+ raw array,
-    to keep peak memory bounded.
+    Cached by (path, variable, start_year, end_year, bbox bounds) — loads only the padded bbox
+    slice of the daily grid, not the full ~1.5-3.8GB global array, since sample_at_cells only
+    ever samples points inside the bbox anyway. Real fix (2026-08-17): the previous full-globe
+    load was benchmarked on I/O time only (bbox-first was actually a bit faster: 4.5s vs 8s) and
+    never accounted for memory — four sequential full-global loads per request (tas/pr x
+    baseline/future), each with same-size intermediates (mm_per_day, the consecutive-dry-day
+    counts array), transiently needed 8-12GB+ and caused a real OOM kill in Docker.
+
+    lat is descending (90 -> -90) and lon is ascending (-180 -> 180) in the cached files —
+    verified directly, not assumed. An antimeridian-wrapping bbox (min_lon > max_lon) falls back
+    to the full lon range rather than producing an inverted, empty slice.
 
     Args: path — cached NetCDF file. variable — "tas" or "pr". start_year, end_year — inclusive
-    year range.
+    year range. min_lat, min_lon, max_lat, max_lon — bbox to subset to.
     Returns: (mean_grid, extreme_grid) — extreme_grid is average annual heat-extreme-day count
     for tas, average annual consecutive-dry-day streak for pr.
     """
+    lon_slice = slice(None) if min_lon > max_lon else slice(min_lon - BBOX_PAD_DEG, max_lon + BBOX_PAD_DEG)
+
     ds = xr.open_dataset(path)
-    raw = ds[variable].sel(time=slice(f"{start_year}-01-01", f"{end_year}-12-31")).load()
+    raw = ds[variable].sel(
+        time=slice(f"{start_year}-01-01", f"{end_year}-12-31"),
+        lat=slice(max_lat + BBOX_PAD_DEG, min_lat - BBOX_PAD_DEG),
+        lon=lon_slice,
+    ).load()
     n_years = len(np.unique(raw["time"].dt.year.values))
 
     if variable == "tas":
@@ -142,10 +164,19 @@ def compute_hazard_drivers(
             f"showing hazard data for {used_start}-{used_end} instead."
         )
 
-    tas_base_mean, tas_base_heat = _driver_stats(TAS_BASELINE_FILE, "tas", *BASELINE_YEARS)
-    tas_fut_mean, tas_fut_heat = _driver_stats(TAS_FUTURE_FILE, "tas", used_start, used_end)
-    pr_base_mean, pr_base_dry = _driver_stats(PR_BASELINE_FILE, "pr", *BASELINE_YEARS)
-    pr_fut_mean, pr_fut_dry = _driver_stats(PR_FUTURE_FILE, "pr", used_start, used_end)
+    tas_base_mean, tas_base_heat = _driver_stats(
+        TAS_BASELINE_FILE, "tas", *BASELINE_YEARS, bbox.min_lat, bbox.min_lon, bbox.max_lat, bbox.max_lon
+    )
+    tas_fut_mean, tas_fut_heat = _driver_stats(
+        TAS_FUTURE_FILE, "tas", used_start, used_end, bbox.min_lat, bbox.min_lon, bbox.max_lat, bbox.max_lon
+    )
+    pr_base_mean, pr_base_dry = _driver_stats(
+        PR_BASELINE_FILE, "pr", *BASELINE_YEARS, bbox.min_lat, bbox.min_lon, bbox.max_lat, bbox.max_lon
+    )
+    pr_fut_mean, pr_fut_dry = _driver_stats(
+        PR_FUTURE_FILE, "pr", used_start, used_end, bbox.min_lat, bbox.min_lon, bbox.max_lat, bbox.max_lon
+    )
+
 
     driver_grids: dict[str, list[GridCell]] = {}
     drivers: dict[str, str] = {}

@@ -22,25 +22,48 @@ VARIABLE = "yield-mai-noirr"
 BASELINE_YEARS = (2011, 2014)  # matches the climate data scoping decision (item 8)
 FUTURE_CACHED_YEARS = (2015, 2100)  # the full future scenario period actually cached
 TIME_ORIGIN_YEAR = 1601  # file's time units: "growing seasons since 1601-01-01" (1 unit = 1 year)
+BBOX_PAD_DEG = 2.0  # generous margin so nearest-neighbor sampling near the bbox edge still finds real data
 
 SECTOR_LABEL = "Maize yield"
 
 
-@lru_cache(maxsize=32)
-def _mean_over_years(path: Path, start_year: int, end_year: int) -> xr.DataArray:
-    """Time-mean of the yield variable over an inclusive calendar-year range.
+@lru_cache(maxsize=64)
+def _mean_over_years(
+    path: Path,
+    start_year: int,
+    end_year: int,
+    min_lat: float,
+    min_lon: float,
+    max_lat: float,
+    max_lon: float,
+) -> xr.DataArray:
+    """Time-mean of the yield variable over an inclusive calendar-year range, subset to a padded bbox.
 
-    Cached by (path, start_year, end_year) — the baseline args never change, and until item 17
-    trains a real GWL emulator, the future window doesn't either, so this collapses the global
-    read+average to a one-time cost per process instead of once per query.
+    Cached by (path, start_year, end_year, bbox bounds) — loads only the padded bbox slice of
+    the global grid, not the full array, matching the memory fix applied to hazard.py's
+    _driver_stats (2026-08-17): eager full-globe loads across multiple tools in one request were
+    the real cause of a Docker OOM kill. lat is descending (90 -> -90) and lon is ascending
+    (-180 -> 180) in the cached files — verified directly. An antimeridian-wrapping bbox
+    (min_lon > max_lon) falls back to the full lon range rather than an inverted, empty slice.
 
     Args: path — cached LPJmL NetCDF file. start_year, end_year — inclusive year range.
+    min_lat, min_lon, max_lat, max_lon — bbox to subset to.
     Returns: 2D (lat, lon) DataArray of the time-mean.
     """
+    lon_slice = slice(None) if min_lon > max_lon else slice(min_lon - BBOX_PAD_DEG, max_lon + BBOX_PAD_DEG)
+
     ds = xr.open_dataset(path, decode_times=False)
     start_idx = start_year - TIME_ORIGIN_YEAR
     end_idx = end_year - TIME_ORIGIN_YEAR
-    return ds[VARIABLE].sel(time=slice(start_idx, end_idx)).mean(dim="time")
+    return (
+        ds[VARIABLE]
+        .sel(
+            time=slice(start_idx, end_idx),
+            lat=slice(max_lat + BBOX_PAD_DEG, min_lat - BBOX_PAD_DEG),
+            lon=lon_slice,
+        )
+        .mean(dim="time")
+    )
 
 
 def compute_agriculture(bbox: BBox, window: Window) -> tuple[list[GridCell], str, list[str]]:
@@ -66,8 +89,14 @@ def compute_agriculture(bbox: BBox, window: Window) -> tuple[list[GridCell], str
             f"showing agriculture data for {used_start}-{used_end} instead."
         )
 
-    baseline = sample_at_cells(_mean_over_years(BASELINE_FILE, *BASELINE_YEARS), cells)
-    future = sample_at_cells(_mean_over_years(FUTURE_FILE, used_start, used_end), cells)
+    baseline = sample_at_cells(
+        _mean_over_years(BASELINE_FILE, *BASELINE_YEARS, bbox.min_lat, bbox.min_lon, bbox.max_lat, bbox.max_lon),
+        cells,
+    )
+    future = sample_at_cells(
+        _mean_over_years(FUTURE_FILE, used_start, used_end, bbox.min_lat, bbox.min_lon, bbox.max_lat, bbox.max_lon),
+        cells,
+    )
 
     abs_change = future - baseline
 
